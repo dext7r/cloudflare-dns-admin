@@ -1,19 +1,23 @@
 import { NextRequest, NextResponse } from "next/server"
 import { exportDnsRecords } from "@/lib/cloudflare"
+import { resolveToken } from "@/lib/cf-token"
+import { requireAuth } from "@/lib/auth-guard"
 
 export async function GET(request: NextRequest) {
+  const { error } = await requireAuth()
+  if (error) return error
+
   try {
     const { searchParams } = request.nextUrl
     const zoneId = searchParams.get("zoneId")
 
     if (!zoneId) {
-      return NextResponse.json(
-        { success: false, error: "缺少 zoneId" },
-        { status: 400 }
-      )
+      return NextResponse.json({ success: false, error: "缺少 zoneId" }, { status: 400 })
     }
 
-    const content = await exportDnsRecords(zoneId)
+    const accountId = searchParams.get("accountId")
+    const token = await resolveToken(accountId)
+    const content = await exportDnsRecords(zoneId, token)
     return new NextResponse(content, {
       headers: {
         "Content-Type": "text/plain; charset=utf-8",

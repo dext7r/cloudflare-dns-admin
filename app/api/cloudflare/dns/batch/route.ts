@@ -1,12 +1,18 @@
 import { NextRequest, NextResponse } from "next/server"
 import { deleteDnsRecord } from "@/lib/cloudflare"
+import { resolveToken } from "@/lib/cf-token"
+import { requireAuth } from "@/lib/auth-guard"
 
 export async function POST(request: NextRequest) {
+  const { error } = await requireAuth("ADMIN")
+  if (error) return error
+
   try {
     const body = await request.json()
-    const { zoneId, recordIds } = body as {
+    const { zoneId, recordIds, accountId } = body as {
       zoneId: string
       recordIds: string[]
+      accountId?: string | null
     }
 
     if (!zoneId || !recordIds?.length) {
@@ -16,24 +22,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const token = await resolveToken(accountId)
     const results = await Promise.allSettled(
-      recordIds.map((id) => deleteDnsRecord(zoneId, id))
+      recordIds.map((id) => deleteDnsRecord(zoneId, id, token))
     )
 
     const failed = results.filter((r) => r.status === "rejected")
-    if (failed.length > 0) {
-      return NextResponse.json({
-        success: true,
-        deleted: recordIds.length - failed.length,
-        failed: failed.length,
-        total: recordIds.length,
-      })
-    }
-
     return NextResponse.json({
       success: true,
-      deleted: recordIds.length,
-      failed: 0,
+      deleted: recordIds.length - failed.length,
+      failed: failed.length,
       total: recordIds.length,
     })
   } catch (error) {

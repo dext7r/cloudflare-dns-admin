@@ -1,0 +1,48 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  VIEWER
+}
+
+model User {
+  id           String          @id @default(cuid())
+  email        String          @unique
+  passwordHash String
+  name         String?
+  role         Role            @default(VIEWER)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  cfAccounts   UserCfAccount[]
+
+  @@map("dns_users")
+}
+
+model CfAccount {
+  id             String          @id @default(cuid())
+  name           String
+  encryptedToken String
+  lastTestAt     DateTime?
+  lastTestStatus String?
+  createdAt      DateTime        @default(now())
+  users          UserCfAccount[]
+
+  @@map("dns_cf_accounts")
+}
+
+model UserCfAccount {
+  userId      String
+  cfAccountId String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cfAccount   CfAccount @relation(fields: [cfAccountId], references: [id], onDelete: Cascade)
+
+  @@id([userId, cfAccountId])
+  @@map("dns_user_cf_accounts")
+}

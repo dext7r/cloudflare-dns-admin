@@ -37,8 +37,8 @@ export function DnsFilters({ onFilterChange }: DnsFiltersProps) {
   const hasFilters = search !== "" || type !== "all"
 
   return (
-    <div className="flex items-center gap-3">
-      <div className="relative flex-1 max-w-sm">
+    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+      <div className="relative flex-1 sm:max-w-sm">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           placeholder="搜索名称或内容..."
@@ -47,33 +47,35 @@ export function DnsFilters({ onFilterChange }: DnsFiltersProps) {
           className="pl-9 bg-background/50 border-border/50 h-9"
         />
       </div>
-      <Select value={type} onValueChange={setType}>
-        <SelectTrigger className="w-[140px] bg-background/50 border-border/50 h-9">
-          <SelectValue placeholder="记录类型" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">全部类型</SelectItem>
-          {ALL_RECORD_TYPES.map((t) => (
-            <SelectItem key={t} value={t}>
-              {t}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      {hasFilters && (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-9 px-2 text-muted-foreground"
-          onClick={() => {
-            setSearch("")
-            setType("all")
-          }}
-        >
-          <X className="h-4 w-4" />
-          <span className="sr-only">清除筛选</span>
-        </Button>
-      )}
+      <div className="flex items-center gap-2">
+        <Select value={type} onValueChange={setType}>
+          <SelectTrigger className="flex-1 sm:w-[140px] bg-background/50 border-border/50 h-9">
+            <SelectValue placeholder="记录类型" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">全部类型</SelectItem>
+            {ALL_RECORD_TYPES.map((t) => (
+              <SelectItem key={t} value={t}>
+                {t}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {hasFilters && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-9 px-2 text-muted-foreground shrink-0"
+            onClick={() => {
+              setSearch("")
+              setType("all")
+            }}
+          >
+            <X className="h-4 w-4" />
+            <span className="sr-only">清除筛选</span>
+          </Button>
+        )}
+      </div>
     </div>
   )
 }

@@ -25,6 +25,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
+import {
   RECORD_TYPE_COLORS,
   formatTtl,
   type DnsRecord,
@@ -48,6 +55,13 @@ interface DnsTableProps {
   onDelete: (record: DnsRecord) => void
   onToggleProxy: (record: DnsRecord) => void
   loading?: boolean
+  readonly?: boolean
+  page?: number
+  totalPages?: number
+  total?: number
+  onPageChange?: (page: number) => void
+  pageSize?: number
+  onPageSizeChange?: (size: number) => void
 }
 
 export function DnsTable({
@@ -58,6 +72,13 @@ export function DnsTable({
   onDelete,
   onToggleProxy,
   loading,
+  readonly,
+  page,
+  totalPages,
+  total,
+  onPageChange,
+  pageSize,
+  onPageSizeChange,
 }: DnsTableProps) {
   const allSelected = records.length > 0 && selectedIds.size === records.length
   const someSelected = selectedIds.size > 0 && selectedIds.size < records.length
@@ -111,23 +132,26 @@ export function DnsTable({
   return (
     <TooltipProvider delayDuration={200}>
       <div className="rounded-lg border border-border/50 overflow-hidden">
-        <Table>
+        <div className="overflow-x-auto">
+        <Table className="min-w-[640px]">
           <TableHeader>
             <TableRow className="bg-muted/30 hover:bg-muted/30">
               <TableHead className="w-[44px]">
-                <Checkbox
-                  checked={allSelected}
-                  ref={(el) => {
-                    if (el) {
-                      const input = el.querySelector("button")
-                      if (input) {
-                        input.dataset.indeterminate = String(someSelected)
+                {!readonly && (
+                  <Checkbox
+                    checked={allSelected}
+                    ref={(el) => {
+                      if (el) {
+                        const input = el.querySelector("button")
+                        if (input) {
+                          input.dataset.indeterminate = String(someSelected)
+                        }
                       }
-                    }
-                  }}
-                  onCheckedChange={toggleAll}
-                  aria-label="全选"
-                />
+                    }}
+                    onCheckedChange={toggleAll}
+                    aria-label="全选"
+                  />
+                )}
               </TableHead>
               <TableHead className="w-[80px]">类型</TableHead>
               <TableHead className="min-w-[180px]">名称</TableHead>
@@ -145,15 +169,17 @@ export function DnsTable({
                 key={record.id}
                 className={cn(
                   "group transition-colors",
-                  selectedIds.has(record.id) && "bg-primary/5"
+                  !readonly && selectedIds.has(record.id) && "bg-primary/5"
                 )}
               >
                 <TableCell>
-                  <Checkbox
-                    checked={selectedIds.has(record.id)}
-                    onCheckedChange={() => toggleOne(record.id)}
-                    aria-label={`选择 ${record.name}`}
-                  />
+                  {!readonly && (
+                    <Checkbox
+                      checked={selectedIds.has(record.id)}
+                      onCheckedChange={() => toggleOne(record.id)}
+                      aria-label={`选择 ${record.name}`}
+                    />
+                  )}
                 </TableCell>
                 <TableCell>
                   <Badge
@@ -208,7 +234,8 @@ export function DnsTable({
                         <div>
                           <Switch
                             checked={record.proxied}
-                            onCheckedChange={() => onToggleProxy(record)}
+                            onCheckedChange={() => !readonly && onToggleProxy(record)}
+                            disabled={readonly}
                             className="data-[state=checked]:bg-primary"
                           />
                         </div>
@@ -248,21 +275,25 @@ export function DnsTable({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => onEdit(record)}>
-                        <Pencil className="mr-2 h-4 w-4" />
-                        编辑
-                      </DropdownMenuItem>
+                      {!readonly && (
+                        <DropdownMenuItem onClick={() => onEdit(record)}>
+                          <Pencil className="mr-2 h-4 w-4" />
+                          编辑
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem onClick={() => copyToClipboard(record.content)}>
                         <Copy className="mr-2 h-4 w-4" />
                         复制内容
                       </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => onDelete(record)}
-                        className="text-destructive-foreground focus:text-destructive-foreground"
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        删除
-                      </DropdownMenuItem>
+                      {!readonly && (
+                        <DropdownMenuItem
+                          onClick={() => onDelete(record)}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          删除
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
@@ -270,7 +301,56 @@ export function DnsTable({
             ))}
           </TableBody>
         </Table>
+        </div>
       </div>
+      {onPageSizeChange !== undefined && (
+        <div className="flex items-center justify-between px-4 py-2.5 border-t border-border/50">
+          {totalPages && totalPages > 1 ? (
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    onClick={(e) => {
+                      e.preventDefault()
+                      if (page && page > 1) onPageChange?.(page - 1)
+                    }}
+                    className={page === 1 ? "pointer-events-none opacity-40" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+                <PaginationItem>
+                  <span className="text-xs text-muted-foreground px-2">
+                    {page} / {totalPages} 页（{total} 条）
+                  </span>
+                </PaginationItem>
+                <PaginationItem>
+                  <PaginationNext
+                    onClick={(e) => {
+                      e.preventDefault()
+                      if (page && page < totalPages) onPageChange?.(page + 1)
+                    }}
+                    className={page === totalPages ? "pointer-events-none opacity-40" : "cursor-pointer"}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          ) : (
+            <span className="text-xs text-muted-foreground">共 {total ?? 0} 条</span>
+          )}
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            每页
+            <select
+              value={pageSize}
+              onChange={(e) => onPageSizeChange(Number(e.target.value))}
+              className="h-6 rounded border border-input bg-background px-1.5 text-xs cursor-pointer focus:outline-none focus:ring-1 focus:ring-ring"
+            >
+              {[5, 10, 20, 50, 100, 500, 1000].map((n) => (
+                <option key={n} value={n}>{n}</option>
+              ))}
+            </select>
+            条
+          </div>
+        </div>
+      )}
     </TooltipProvider>
   )
 }

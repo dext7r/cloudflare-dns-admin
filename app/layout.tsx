@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
-import { Toaster } from 'sonner'
 import { Analytics } from '@vercel/analytics/next'
+import { ClientProviders } from '@/components/ClientProviders'
+import { ThemedToaster } from '@/components/ThemedToaster'
 import './globals.css'
 
 const _geist = Geist({ subsets: ["latin"] });
@@ -35,20 +36,12 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="zh-CN">
+    <html lang="zh-CN" suppressHydrationWarning>
       <body className="font-sans antialiased">
-        {children}
-        <Toaster
-          position="top-right"
-          theme="dark"
-          toastOptions={{
-            style: {
-              background: 'oklch(0.19 0.005 260)',
-              border: '1px solid oklch(0.26 0.005 260)',
-              color: 'oklch(0.93 0 0)',
-            },
-          }}
-        />
+        <ClientProviders>
+          {children}
+        </ClientProviders>
+        <ThemedToaster />
         <Analytics />
       </body>
     </html>

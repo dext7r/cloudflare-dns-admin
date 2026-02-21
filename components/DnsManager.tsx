@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from "react"
 import useSWR, { mutate as globalMutate } from "swr"
 import { toast } from "sonner"
 import { ZoneSelector } from "@/components/ZoneSelector"
+import { AccountSelector } from "@/components/AccountSelector"
 import { DnsFilters } from "@/components/DnsFilters"
 import { DnsTable } from "@/components/DnsTable"
 import { DnsRecordForm } from "@/components/DnsRecordForm"
@@ -18,14 +19,16 @@ import type {
   DnsRecordType,
   CreateDnsRecordRequest,
 } from "@/lib/dns-types"
-import {
-  Plus,
-  Download,
-  Upload,
-  RefreshCw,
-  Shield,
-  AlertTriangle,
-} from "lucide-react"
+import { Plus, Download, Upload, RefreshCw, AlertTriangle } from "lucide-react"
+
+interface DnsManagerProps {
+  role: "ADMIN" | "VIEWER"
+}
+
+interface CfAccount {
+  id: string
+  name: string
+}
 
 async function fetcher<T>(url: string): Promise<T> {
   const res = await fetch(url)
@@ -35,79 +38,88 @@ async function fetcher<T>(url: string): Promise<T> {
   return data
 }
 
-export function DnsManager() {
+export function DnsManager({ role }: DnsManagerProps) {
+  const isAdmin = role === "ADMIN"
+
+  const [accountId, setAccountId] = useState<string | null>(null)
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [formOpen, setFormOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
   const [editRecord, setEditRecord] = useState<DnsRecord | null>(null)
   const [batchLoading, setBatchLoading] = useState(false)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(50)
   const [filters, setFilters] = useState<{
     type?: DnsRecordType
     search: string
   }>({ search: "" })
 
-  // 获取 Zone 列表
+  const { data: accountsData } = useSWR<{ success: boolean; result: CfAccount[] }>(
+    "/api/admin/cf-accounts",
+    fetcher
+  )
+  const cfAccounts = accountsData?.result || []
+
+  const zonesUrl = `/api/cloudflare/zones?accountId=${accountId ?? ""}`
   const {
     data: zonesData,
     error: zonesError,
     isLoading: zonesLoading,
-  } = useSWR<{ success: boolean; result: Zone[] }>(
-    "/api/cloudflare/zones",
-    fetcher
-  )
+  } = useSWR<{ success: boolean; result: Zone[] }>(zonesUrl, fetcher)
 
   const zones = zonesData?.result || []
 
-  // 自动选中第一个 zone
   useEffect(() => {
     if (zones.length > 0 && !activeZoneId) {
       setActiveZoneId(zones[0].id)
     }
   }, [zones, activeZoneId])
 
-  // 构建 DNS 记录查询 URL
   const dnsUrl = activeZoneId
-    ? `/api/cloudflare/dns?zoneId=${activeZoneId}&per_page=200${
+    ? `/api/cloudflare/dns?zoneId=${activeZoneId}&page=${page}&per_page=${pageSize}${
         filters.type ? `&type=${filters.type}` : ""
-      }${filters.search ? `&name=${filters.search}` : ""}`
+      }${filters.search ? `&name=${filters.search}` : ""}&accountId=${accountId ?? ""}`
     : null
 
-  // 获取 DNS 记录
   const {
     data: dnsData,
     error: dnsError,
     isLoading: dnsLoading,
-  } = useSWR<{ success: boolean; records: DnsRecord[]; total: number }>(
-    dnsUrl,
-    fetcher
-  )
+  } = useSWR<{
+    success: boolean
+    records: DnsRecord[]
+    total: number
+    totalPages?: number
+  }>(dnsUrl, fetcher)
 
   const records = dnsData?.records || []
   const totalCount = dnsData?.total || 0
-
-  // 本地搜索过滤（对 content 做客户端过滤）
-  const filteredRecords = filters.search
-    ? records.filter(
-        (r) =>
-          r.name.toLowerCase().includes(filters.search.toLowerCase()) ||
-          r.content.toLowerCase().includes(filters.search.toLowerCase())
-      )
-    : records
-
   const activeZone = zones.find((z) => z.id === activeZoneId)
 
   const handleFilterChange = useCallback(
     (f: { type?: DnsRecordType; search: string }) => {
       setFilters(f)
+      setPage(1)
     },
     []
   )
 
   function refreshRecords() {
-    if (dnsUrl) {
-      globalMutate(dnsUrl)
-    }
+    if (!activeZoneId) return
+    const zonePrefix = `/api/cloudflare/dns?zoneId=${activeZoneId}&`
+    void globalMutate(
+      (key: unknown) => typeof key === "string" && key.startsWith(zonePrefix),
+      undefined,
+      { revalidate: true }
+    )
+  }
+
+  function handleAccountChange(id: string | null) {
+    setAccountId(id)
+    setActiveZoneId(null)
+    setSelectedIds(new Set())
+    setPage(1)
   }
 
   async function handleCreateOrUpdate(data: CreateDnsRecordRequest) {
@@ -115,7 +127,7 @@ export function DnsManager() {
       const res = await fetch(`/api/cloudflare/dns/${editRecord.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ zoneId: activeZoneId, ...data }),
+        body: JSON.stringify({ zoneId: activeZoneId, accountId, ...data }),
       })
       const json = await res.json()
       if (!json.success) throw new Error(json.error)
@@ -124,7 +136,7 @@ export function DnsManager() {
       const res = await fetch("/api/cloudflare/dns", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ zoneId: activeZoneId, ...data }),
+        body: JSON.stringify({ zoneId: activeZoneId, accountId, ...data }),
       })
       const json = await res.json()
       if (!json.success) throw new Error(json.error)
@@ -137,10 +149,8 @@ export function DnsManager() {
   async function handleDelete(record: DnsRecord) {
     if (!confirm(`确定要删除记录 "${record.name}" (${record.type}) 吗？`)) return
     try {
-      const res = await fetch(
-        `/api/cloudflare/dns/${record.id}?zoneId=${activeZoneId}`,
-        { method: "DELETE" }
-      )
+      const qs = `zoneId=${activeZoneId}&accountId=${accountId ?? ""}`
+      const res = await fetch(`/api/cloudflare/dns/${record.id}?${qs}`, { method: "DELETE" })
       const json = await res.json()
       if (!json.success) throw new Error(json.error)
       toast.success("DNS 记录已删除")
@@ -157,6 +167,7 @@ export function DnsManager() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           zoneId: activeZoneId,
+          accountId,
           type: record.type,
           name: record.name,
           content: record.content,
@@ -166,9 +177,7 @@ export function DnsManager() {
       })
       const json = await res.json()
       if (!json.success) throw new Error(json.error)
-      toast.success(
-        record.proxied ? "已切换为仅 DNS" : "已启用 Cloudflare 代理"
-      )
+      toast.success(record.proxied ? "已切换为仅 DNS" : "已启用 Cloudflare 代理")
       refreshRecords()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "切换代理状态失败")
@@ -183,6 +192,7 @@ export function DnsManager() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           zoneId: activeZoneId,
+          accountId,
           recordIds: Array.from(selectedIds),
         }),
       })
@@ -200,9 +210,8 @@ export function DnsManager() {
 
   async function handleExport() {
     try {
-      const res = await fetch(
-        `/api/cloudflare/dns/export?zoneId=${activeZoneId}`
-      )
+      const qs = `zoneId=${activeZoneId}&accountId=${accountId ?? ""}`
+      const res = await fetch(`/api/cloudflare/dns/export?${qs}`)
       if (!res.ok) throw new Error("导出失败")
       const content = await res.text()
       const blob = new Blob([content], { type: "text/plain" })
@@ -222,7 +231,7 @@ export function DnsManager() {
     const res = await fetch("/api/cloudflare/dns/import", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ zoneId: activeZoneId, content }),
+      body: JSON.stringify({ zoneId: activeZoneId, accountId, content }),
     })
     const json = await res.json()
     if (!json.success) throw new Error(json.error)
@@ -240,138 +249,134 @@ export function DnsManager() {
   function handleZoneChange(zoneId: string) {
     setActiveZoneId(zoneId)
     setSelectedIds(new Set())
+    setPage(1)
   }
 
   const hasError = zonesError || dnsError
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border/50 bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="mx-auto max-w-7xl px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Shield className="h-6 w-6 text-primary" />
-              <div>
-                <h1 className="text-lg font-semibold text-foreground">
-                  Cloudflare DNS
-                </h1>
-                <p className="text-xs text-muted-foreground">
-                  DNS 记录管理系统
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              {activeZoneId && (
-                <>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={refreshRecords}
-                    className="h-8"
-                  >
-                    <RefreshCw className="h-3.5 w-3.5" />
-                    <span className="sr-only">刷新</span>
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setImportOpen(true)}
-                    className="h-8"
-                  >
-                    <Upload className="mr-1.5 h-3.5 w-3.5" />
-                    导入
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleExport}
-                    className="h-8"
-                  >
-                    <Download className="mr-1.5 h-3.5 w-3.5" />
-                    导出
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      setEditRecord(null)
-                      setFormOpen(true)
-                    }}
-                    className="h-8"
-                  >
-                    <Plus className="mr-1.5 h-3.5 w-3.5" />
-                    添加记录
-                  </Button>
-                </>
-              )}
-            </div>
-          </div>
+    <div className="px-6 py-5 space-y-5 max-w-7xl mx-auto">
+      {/* Page toolbar */}
+      <div className="flex items-center justify-between gap-4 min-h-[2rem]">
+        <div className="flex items-center gap-2">
+          {activeZoneId && (
+            <Badge variant="secondary" className="text-xs">
+              {records.length} / {totalCount} 条记录
+            </Badge>
+          )}
         </div>
-      </header>
-
-      <main className="mx-auto max-w-7xl px-4 py-6 space-y-4">
-        {/* 错误提示 */}
-        {hasError && (
-          <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 flex items-start gap-3">
-            <AlertTriangle className="h-5 w-5 text-destructive-foreground shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-destructive-foreground">
-                连接失败
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {zonesError?.message || dnsError?.message || "无法连接到 Cloudflare API，请检查 API Token 配置"}
-              </p>
-            </div>
+        {activeZoneId && (
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={refreshRecords} className="h-8">
+              <RefreshCw className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline ml-1.5">刷新</span>
+            </Button>
+            {isAdmin && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setImportOpen(true)}
+                className="h-8 hidden sm:flex"
+              >
+                <Upload className="h-3.5 w-3.5" />
+                <span className="ml-1.5">导入</span>
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExport}
+              className="h-8 hidden sm:flex"
+            >
+              <Download className="h-3.5 w-3.5" />
+              <span className="ml-1.5">导出</span>
+            </Button>
+            {isAdmin && (
+              <Button
+                size="sm"
+                onClick={() => {
+                  setEditRecord(null)
+                  setFormOpen(true)
+                }}
+                className="h-8"
+              >
+                <Plus className="mr-1.5 h-3.5 w-3.5" />
+                <span className="hidden sm:inline">添加记录</span>
+                <span className="sm:hidden">添加</span>
+              </Button>
+            )}
           </div>
         )}
+      </div>
 
-        {/* Zone 选择器 */}
-        <div className="rounded-lg border border-border/50 bg-card/50 px-4 py-3">
-          <ZoneSelector
-            zones={zones}
-            activeZoneId={activeZoneId}
-            onSelect={handleZoneChange}
-            loading={zonesLoading}
+      {hasError && (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-destructive-foreground shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-destructive-foreground">连接失败</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {zonesError?.message || dnsError?.message || "无法连接到 Cloudflare API，请检查 API Token 配置"}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {cfAccounts.length > 0 && (
+        <div className="rounded-lg border border-border/50 bg-card/50 px-4 py-3 flex items-center gap-3">
+          <span className="text-xs text-muted-foreground shrink-0">账号</span>
+          <AccountSelector
+            accounts={cfAccounts}
+            activeAccountId={accountId}
+            onSelect={handleAccountChange}
           />
         </div>
+      )}
 
-        {/* 操作栏: 筛选 + 统计 */}
-        {activeZoneId && (
-          <div className="flex items-center justify-between gap-4">
-            <DnsFilters onFilterChange={handleFilterChange} />
-            <div className="flex items-center gap-2 shrink-0">
-              <Badge variant="secondary" className="text-xs">
-                {filteredRecords.length} / {totalCount} 条记录
-              </Badge>
-            </div>
-          </div>
-        )}
+      <div className="rounded-lg border border-border/50 bg-card/50 px-4 py-3">
+        <ZoneSelector
+          zones={zones}
+          activeZoneId={activeZoneId}
+          onSelect={handleZoneChange}
+          loading={zonesLoading}
+        />
+      </div>
 
-        <Separator className="opacity-30" />
+      {activeZoneId && (
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+          <DnsFilters onFilterChange={handleFilterChange} />
+        </div>
+      )}
 
-        {/* 批量操作工具栏 */}
+      <Separator className="opacity-30" />
+
+      {isAdmin && (
         <DnsBatchActions
           selectedCount={selectedIds.size}
           onBatchDelete={handleBatchDelete}
           onClearSelection={() => setSelectedIds(new Set())}
           loading={batchLoading}
         />
+      )}
 
-        {/* DNS 记录表格 */}
-        {activeZoneId && (
-          <DnsTable
-            records={filteredRecords}
-            selectedIds={selectedIds}
-            onSelectionChange={setSelectedIds}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            onToggleProxy={handleToggleProxy}
-            loading={dnsLoading}
-          />
-        )}
-      </main>
+      {activeZoneId && (
+        <DnsTable
+          records={records}
+          selectedIds={selectedIds}
+          onSelectionChange={setSelectedIds}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onToggleProxy={handleToggleProxy}
+          loading={dnsLoading}
+          page={page}
+          totalPages={dnsData?.totalPages}
+          total={totalCount}
+          onPageChange={setPage}
+          pageSize={pageSize}
+          onPageSizeChange={(size) => { setPageSize(size); setPage(1) }}
+          readonly={!isAdmin}
+        />
+      )}
 
-      {/* 创建/编辑表单 */}
       <DnsRecordForm
         open={formOpen}
         onOpenChange={(open) => {
@@ -383,7 +388,6 @@ export function DnsManager() {
         zoneName={activeZone?.name}
       />
 
-      {/* 导入对话框 */}
       <DnsImportDialog
         open={importOpen}
         onOpenChange={setImportOpen}

@@ -1,18 +1,18 @@
 import { redirect } from "next/navigation"
 import { auth } from "@/lib/auth"
-import { DnsManager } from "@/components/DnsManager"
+import { UserManager } from "./UserManager"
 import { AdminShell } from "@/components/AdminShell"
 
-export default async function Page() {
+export default async function AdminUsersPage() {
   const session = await auth()
 
-  if (!session?.user) {
-    redirect("/login")
+  if (!session || session.user.role !== "ADMIN") {
+    redirect("/")
   }
 
   return (
     <AdminShell role={session.user.role} user={session.user}>
-      <DnsManager role={session.user.role} />
+      <UserManager currentUserId={session.user.id} />
     </AdminShell>
   )
 }
