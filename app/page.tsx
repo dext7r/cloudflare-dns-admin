@@ -10,9 +10,12 @@ export default async function Page() {
     redirect("/login")
   }
 
+  const protectedZones = (process.env.PROTECTED_ZONES ?? "")
+    .split(",").map(s => s.trim()).filter(Boolean)
+
   return (
     <AdminShell role={session.user.role} user={session.user}>
-      <DnsManager role={session.user.role} />
+      <DnsManager role={session.user.role} protectedZones={protectedZones} />
     </AdminShell>
   )
 }

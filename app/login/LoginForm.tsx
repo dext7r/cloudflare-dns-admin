@@ -19,7 +19,12 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>
 
-export function LoginForm() {
+interface LoginFormProps {
+  demoEmail?: string
+  demoPassword?: string
+}
+
+export function LoginForm({ demoEmail, demoPassword }: LoginFormProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
@@ -28,7 +33,10 @@ export function LoginForm() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<FormValues>({ resolver: zodResolver(schema) })
+  } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: { email: demoEmail ?? "", password: demoPassword ?? "" },
+  })
 
   async function onSubmit(data: FormValues) {
     setLoading(true)
@@ -52,6 +60,11 @@ export function LoginForm() {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      {demoEmail && (
+        <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-400">
+          演示模式：账号密码已自动填充
+        </div>
+      )}
       <div className="space-y-1.5">
         <Label htmlFor="email">邮箱</Label>
         <Input

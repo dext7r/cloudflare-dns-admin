@@ -56,6 +56,7 @@ interface DnsTableProps {
   onToggleProxy: (record: DnsRecord) => void
   loading?: boolean
   readonly?: boolean
+  protectedZone?: boolean
   page?: number
   totalPages?: number
   total?: number
@@ -73,6 +74,7 @@ export function DnsTable({
   onToggleProxy,
   loading,
   readonly,
+  protectedZone,
   page,
   totalPages,
   total,
@@ -80,6 +82,7 @@ export function DnsTable({
   pageSize,
   onPageSizeChange,
 }: DnsTableProps) {
+  const canDelete = !readonly && !protectedZone
   const allSelected = records.length > 0 && selectedIds.size === records.length
   const someSelected = selectedIds.size > 0 && selectedIds.size < records.length
 
@@ -137,7 +140,7 @@ export function DnsTable({
           <TableHeader>
             <TableRow className="bg-muted/30 hover:bg-muted/30">
               <TableHead className="w-[44px]">
-                {!readonly && (
+                {canDelete && (
                   <Checkbox
                     checked={allSelected}
                     ref={(el) => {
@@ -169,11 +172,11 @@ export function DnsTable({
                 key={record.id}
                 className={cn(
                   "group transition-colors",
-                  !readonly && selectedIds.has(record.id) && "bg-primary/5"
+                  !readonly && !protectedZone && selectedIds.has(record.id) && "bg-primary/5"
                 )}
               >
                 <TableCell>
-                  {!readonly && (
+                  {canDelete && (
                     <Checkbox
                       checked={selectedIds.has(record.id)}
                       onCheckedChange={() => toggleOne(record.id)}
@@ -285,7 +288,7 @@ export function DnsTable({
                         <Copy className="mr-2 h-4 w-4" />
                         复制内容
                       </DropdownMenuItem>
-                      {!readonly && (
+                      {canDelete && (
                         <DropdownMenuItem
                           onClick={() => onDelete(record)}
                           className="text-destructive focus:text-destructive"

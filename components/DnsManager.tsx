@@ -23,6 +23,7 @@ import { Plus, Download, Upload, RefreshCw, AlertTriangle } from "lucide-react"
 
 interface DnsManagerProps {
   role: "ADMIN" | "VIEWER"
+  protectedZones?: string[]
 }
 
 interface CfAccount {
@@ -38,7 +39,7 @@ async function fetcher<T>(url: string): Promise<T> {
   return data
 }
 
-export function DnsManager({ role }: DnsManagerProps) {
+export function DnsManager({ role, protectedZones = [] }: DnsManagerProps) {
   const isAdmin = role === "ADMIN"
 
   const [accountId, setAccountId] = useState<string | null>(null)
@@ -60,8 +61,13 @@ export function DnsManager({ role }: DnsManagerProps) {
     fetcher
   )
   const cfAccounts = accountsData?.result || []
+  const accountsReady = !!accountsData
+  const noAccounts = accountsReady && cfAccounts.length === 0
 
-  const zonesUrl = `/api/cloudflare/zones?accountId=${accountId ?? ""}`
+  // 仅当已选账号或无 DB 账号（回退到环境变量）时才拉取 Zone 列表
+  const zonesUrl = (accountId !== null || noAccounts)
+    ? `/api/cloudflare/zones?accountId=${accountId ?? ""}`
+    : null
   const {
     data: zonesData,
     error: zonesError,
@@ -96,6 +102,7 @@ export function DnsManager({ role }: DnsManagerProps) {
   const records = dnsData?.records || []
   const totalCount = dnsData?.total || 0
   const activeZone = zones.find((z) => z.id === activeZoneId)
+  const isProtectedZone = !!activeZone && protectedZones.includes(activeZone.name)
 
   const handleFilterChange = useCallback(
     (f: { type?: DnsRecordType; search: string }) => {
@@ -374,6 +381,7 @@ export function DnsManager({ role }: DnsManagerProps) {
           pageSize={pageSize}
           onPageSizeChange={(size) => { setPageSize(size); setPage(1) }}
           readonly={!isAdmin}
+          protectedZone={isProtectedZone}
         />
       )}
 

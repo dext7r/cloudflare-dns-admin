@@ -29,10 +29,18 @@ export async function PATCH(
 
     const target = await prisma.user.findUnique({
       where: { id },
-      select: { id: true, role: true },
+      select: { id: true, role: true, email: true },
     })
     if (!target) {
       return NextResponse.json({ success: false, error: "用户不存在" }, { status: 404 })
+    }
+
+    const protectedEmail = process.env.PROTECTED_ADMIN_EMAIL?.trim().toLowerCase()
+    if (protectedEmail && target.email.toLowerCase() === protectedEmail) {
+      return NextResponse.json(
+        { success: false, error: "超级管理员账号角色不可修改" },
+        { status: 403 }
+      )
     }
 
     if (target.role === "ADMIN" && parsed.data.role === "VIEWER") {
@@ -76,10 +84,18 @@ export async function DELETE(
 
     const target = await prisma.user.findUnique({
       where: { id },
-      select: { id: true, role: true },
+      select: { id: true, role: true, email: true },
     })
     if (!target) {
       return NextResponse.json({ success: false, error: "用户不存在" }, { status: 404 })
+    }
+
+    const protectedEmail = process.env.PROTECTED_ADMIN_EMAIL?.trim().toLowerCase()
+    if (protectedEmail && target.email.toLowerCase() === protectedEmail) {
+      return NextResponse.json(
+        { success: false, error: "超级管理员账号不可删除" },
+        { status: 403 }
+      )
     }
 
     if (target.role === "ADMIN") {

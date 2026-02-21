@@ -24,10 +24,18 @@ export async function PATCH(request: NextRequest) {
 
     const user = await prisma.user.findUnique({
       where: { id: session!.user.id },
-      select: { passwordHash: true },
+      select: { passwordHash: true, email: true },
     })
     if (!user) {
       return NextResponse.json({ success: false, error: "用户不存在" }, { status: 404 })
+    }
+
+    const protectedEmail = process.env.PROTECTED_ADMIN_EMAIL?.trim().toLowerCase()
+    if (protectedEmail && user.email.toLowerCase() === protectedEmail) {
+      return NextResponse.json(
+        { success: false, error: "超级管理员密码不可修改" },
+        { status: 403 }
+      )
     }
 
     const matched = await bcrypt.compare(parsed.data.currentPassword, user.passwordHash)

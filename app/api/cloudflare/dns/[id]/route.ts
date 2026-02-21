@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { updateDnsRecord, deleteDnsRecord } from "@/lib/cloudflare"
+import { updateDnsRecord, deleteDnsRecord, getZone } from "@/lib/cloudflare"
 import { resolveToken } from "@/lib/cf-token"
 import { requireAuth } from "@/lib/auth-guard"
 
@@ -46,6 +46,19 @@ export async function DELETE(
 
     const accountId = searchParams.get("accountId")
     const token = await resolveToken(accountId)
+
+    const protectedZones = (process.env.PROTECTED_ZONES ?? "")
+      .split(",").map(s => s.trim()).filter(Boolean)
+    if (protectedZones.length > 0) {
+      const zone = await getZone(zoneId, token)
+      if (zone && protectedZones.includes(zone.name)) {
+        return NextResponse.json(
+          { success: false, error: "该域名为受保护域名，禁止删除 DNS 记录" },
+          { status: 403 }
+        )
+      }
+    }
+
     await deleteDnsRecord(zoneId, id, token)
     return NextResponse.json({ success: true })
   } catch (error) {

@@ -36,6 +36,15 @@ async function cfFetch<T>(
   return json
 }
 
+export async function getZone(zoneId: string, token: string): Promise<Zone | null> {
+  try {
+    const response = await cfFetch<Zone>(`/zones/${zoneId}`, token)
+    return response.result
+  } catch {
+    return null
+  }
+}
+
 export async function listZones(token: string): Promise<Zone[]> {
   const response = await cfFetch<Zone[]>("/zones?per_page=1000&status=active", token)
   return response.result

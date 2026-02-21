@@ -3,6 +3,10 @@ import { LoginForm } from "./LoginForm"
 import { ThemeToggle } from "@/components/ThemeToggle"
 
 export default function LoginPage() {
+  const demoMode = process.env.DEMO_MODE === "true"
+  const demoEmail = demoMode ? (process.env.SEED_ADMIN_EMAIL ?? "") : undefined
+  const demoPassword = demoMode ? (process.env.SEED_ADMIN_PASSWORD ?? "") : undefined
+
   return (
     <div className="relative min-h-screen bg-background flex items-center justify-center p-4">
       <div className="absolute top-4 right-4">
@@ -16,7 +20,7 @@ export default function LoginPage() {
           <h1 className="text-xl font-semibold">登录</h1>
           <p className="text-sm text-muted-foreground">Cloudflare DNS 管理系统</p>
         </div>
-        <LoginForm />
+        <LoginForm demoEmail={demoEmail} demoPassword={demoPassword} />
       </div>
     </div>
   )
