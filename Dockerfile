@@ -18,8 +18,13 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
-# Remove any pnpm symlink at .prisma, then generate from project root to create a real directory
-RUN rm -rf /app/node_modules/.prisma && node_modules/.bin/prisma generate
+# Force-create .prisma at project root by deleting any pnpm symlink first.
+# schema.prisma has explicit output="../node_modules/.prisma/client" so the path
+# is always resolved relative to prisma/ → /app/node_modules/.prisma/client
+RUN rm -rf /app/node_modules/.prisma \
+ && node_modules/.bin/prisma generate \
+ && test -d /app/node_modules/.prisma \
+ || (echo "ERROR: prisma generate did not create /app/node_modules/.prisma" && exit 1)
 RUN pnpm build
 
 # ---- runner: minimal production image ----
