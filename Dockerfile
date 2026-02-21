@@ -7,9 +7,6 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY prisma ./prisma/
 RUN pnpm install --frozen-lockfile
-# postinstall (prisma generate) is skipped for prisma pkgs via ignoredBuiltDependencies;
-# run explicitly from project root so /app/node_modules/.prisma is a real directory
-RUN pnpm exec prisma generate
 
 # ---- builder: compile Next.js ----
 FROM node:22-alpine AS builder
@@ -21,6 +18,8 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
+# Remove any pnpm symlink at .prisma, then generate from project root to create a real directory
+RUN rm -rf /app/node_modules/.prisma && node_modules/.bin/prisma generate
 RUN pnpm build
 
 # ---- runner: minimal production image ----
@@ -40,9 +39,7 @@ RUN addgroup --system --gid 1001 nodejs \
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-# prisma generate (explicit, from project root) creates /app/node_modules/.prisma as real dir
-COPY --from=deps --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
 
 USER nextjs
 EXPOSE 3000
