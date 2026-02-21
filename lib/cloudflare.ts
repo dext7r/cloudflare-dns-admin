@@ -50,6 +50,19 @@ export async function listZones(token: string): Promise<Zone[]> {
   return response.result
 }
 
+export async function getCfAccountId(token: string): Promise<string | null> {
+  try {
+    const res = await fetch(`${CF_API_BASE}/zones?per_page=1`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!res.ok) return null
+    const json = await res.json()
+    return (json.result?.[0] as { account?: { id: string } })?.account?.id ?? null
+  } catch {
+    return null
+  }
+}
+
 export async function listDnsRecords(
   zoneId: string,
   token: string,
@@ -321,15 +334,57 @@ export async function getZoneAnalytics(
   since?: string,
   until?: string
 ): Promise<ZoneAnalytics> {
-  const params = new URLSearchParams()
-  if (since) params.set("since", since)
-  if (until) params.set("until", until)
-  const qs = params.toString()
-  const response = await cfFetch<ZoneAnalytics>(
-    `/zones/${zoneId}/analytics/dashboard${qs ? `?${qs}` : ""}`,
-    token
-  )
-  return response.result
+  const sinceDate = since ? new Date(since) : new Date(Date.now() - 24 * 3600 * 1000)
+  const untilDate = until ? new Date(until) : new Date()
+  const diffHours = (untilDate.getTime() - sinceDate.getTime()) / (1000 * 3600)
+  const useDaily = diffHours > 48
+
+  const query = useDaily
+    ? `query($zoneTag:String!,$since:Date!,$until:Date!){viewer{zones(filter:{zoneTag:$zoneTag}){httpRequests1dGroups(limit:366,filter:{date_geq:$since,date_leq:$until}){dimensions{date}sum{requests bytes threats cachedRequests cachedBytes pageViews}uniq{uniques}}}}}`
+    : `query($zoneTag:String!,$since:Time!,$until:Time!){viewer{zones(filter:{zoneTag:$zoneTag}){httpRequests1hGroups(limit:1000,filter:{datetime_geq:$since,datetime_leq:$until}){dimensions{datetime}sum{requests bytes threats cachedRequests cachedBytes pageViews}uniq{uniques}}}}}`
+
+  const variables = useDaily
+    ? { zoneTag: zoneId, since: sinceDate.toISOString().split("T")[0], until: untilDate.toISOString().split("T")[0] }
+    : { zoneTag: zoneId, since: sinceDate.toISOString(), until: untilDate.toISOString() }
+
+  const res = await fetch("https://api.cloudflare.com/client/v4/graphql", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ query, variables }),
+  })
+  if (!res.ok) throw new Error(`GraphQL API 错误: ${res.status}`)
+  const json = await res.json()
+  if (json.errors?.length) throw new Error(json.errors[0]?.message ?? "GraphQL 查询失败")
+
+  const zoneData = json.data?.viewer?.zones?.[0]
+  const groups: Array<{
+    dimensions: { datetime?: string; date?: string }
+    sum: { requests: number; bytes: number; threats: number; cachedRequests: number; cachedBytes: number; pageViews: number }
+    uniq: { uniques: number }
+  }> = useDaily
+    ? (zoneData?.httpRequests1dGroups ?? [])
+    : (zoneData?.httpRequests1hGroups ?? [])
+
+  let totalRequests = 0, totalBytes = 0, totalThreats = 0, totalPageViews = 0, totalUniques = 0
+  const timeseries = groups.map((g) => {
+    totalRequests += g.sum.requests
+    totalBytes += g.sum.bytes
+    totalThreats += g.sum.threats
+    totalPageViews += g.sum.pageViews
+    totalUniques += g.uniq.uniques
+    return { since: g.dimensions?.datetime ?? g.dimensions?.date ?? "", requests: { all: g.sum.requests } }
+  })
+
+  return {
+    totals: {
+      requests: { all: totalRequests },
+      bandwidth: { all: totalBytes },
+      threats: { all: totalThreats },
+      pageviews: { all: totalPageViews },
+      uniques: { all: totalUniques },
+    },
+    timeseries,
+  }
 }
 
 // ── Bulk Redirects ────────────────────────────────────────────────────────────
