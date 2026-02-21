@@ -1,6 +1,12 @@
 import { auth } from "@/lib/auth"
 import { NextResponse } from "next/server"
 
+const PUBLIC_PATHS = ["/", "/login", "/docs"]
+
+function isPublic(pathname: string) {
+  return PUBLIC_PATHS.some((p) => pathname === p || (p !== "/" && pathname.startsWith(p + "/")))
+}
+
 export default auth((req) => {
   const { pathname } = req.nextUrl
   const isApi = pathname.startsWith("/api/")
@@ -9,7 +15,7 @@ export default auth((req) => {
     return NextResponse.redirect(new URL("/", req.url))
   }
 
-  if (!req.auth && pathname !== "/login") {
+  if (!req.auth && !isPublic(pathname)) {
     if (isApi) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 })
     }

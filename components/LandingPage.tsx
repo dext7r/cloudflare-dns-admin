@@ -171,14 +171,7 @@ export function LandingPage() {
               <Link href="/login">立即使用</Link>
             </Button>
             <Button size="lg" variant="outline" asChild>
-              <Link
-                href="https://github.com/dext7r/cloudflare-dns-admin#readme"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                查看文档
-                <ExternalLink className="ml-2 h-4 w-4" />
-              </Link>
+              <Link href="/docs/getting-started">查看文档</Link>
             </Button>
           </div>
         </div>
