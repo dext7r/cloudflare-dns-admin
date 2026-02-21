@@ -1,8 +1,18 @@
 {
   "name": "cloudflare-dns-admin",
   "version": "0.2.0",
-  "description": "Multi-user Cloudflare DNS management panel built with Next.js",
+  "description": "Multi-user Cloudflare DNS management panel with RBAC, multi-account support and AES-256-GCM token encryption",
   "license": "MIT",
+  "keywords": [
+    "cloudflare",
+    "dns",
+    "dns-management",
+    "nextjs",
+    "next-auth",
+    "prisma",
+    "shadcn-ui",
+    "tailwindcss"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/dext7r/cloudflare-dns-admin.git"

@@ -29,7 +29,11 @@ async function cfFetch<T>(
     throw new Error(parsed?.errors?.[0]?.message || `Cloudflare API 错误: ${res.status}`)
   }
 
-  return res.json()
+  const json = await res.json() as CloudflareApiResponse<T>
+  if (!json.success) {
+    throw new Error(json.errors?.[0]?.message || "Cloudflare API 返回失败")
+  }
+  return json
 }
 
 export async function listZones(token: string): Promise<Zone[]> {

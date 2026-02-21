@@ -1,4 +1,5 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto"
+import type { Session } from "next-auth"
 import { prisma } from "@/lib/prisma"
 
 function getKey(): Buffer {
@@ -29,8 +30,14 @@ export function decrypt(ciphertext: string): string {
   return decipher.update(data).toString("utf8") + decipher.final("utf8")
 }
 
-export async function resolveToken(accountId?: string | null): Promise<string> {
+export async function resolveToken(accountId?: string | null, session?: Session | null): Promise<string> {
   if (accountId) {
+    if (session?.user?.role === "VIEWER") {
+      const bound = await prisma.userCfAccount.findUnique({
+        where: { userId_cfAccountId: { userId: session.user.id, cfAccountId: accountId } },
+      })
+      if (!bound) throw new Error("无权访问该账号")
+    }
     const account = await prisma.cfAccount.findUnique({ where: { id: accountId } })
     if (!account) throw new Error("账号不存在")
     return decrypt(account.encryptedToken)

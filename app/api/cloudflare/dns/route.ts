@@ -5,7 +5,7 @@ import type { DnsRecordFilters } from "@/lib/dns-types"
 import { requireAuth } from "@/lib/auth-guard"
 
 export async function GET(request: NextRequest) {
-  const { error } = await requireAuth()
+  const { error, session } = await requireAuth()
   if (error) return error
 
   try {
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     if (direction) filters.direction = direction as DnsRecordFilters["direction"]
 
     const accountId = searchParams.get("accountId")
-    const token = await resolveToken(accountId)
+    const token = await resolveToken(accountId, session)
     const data = await listDnsRecords(zoneId, token, filters)
     return NextResponse.json({ success: true, ...data })
   } catch (error) {
