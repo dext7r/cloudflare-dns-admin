@@ -256,7 +256,7 @@ export function UserManager({ currentUserId }: { currentUserId: string }) {
   }
 
   return (
-    <div className="px-6 py-5 space-y-5 max-w-5xl mx-auto">
+    <div className="px-6 py-5 space-y-5 max-w-7xl mx-auto">
       {/* Page toolbar */}
       <div className="flex items-center justify-end">
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>

@@ -27,6 +27,9 @@
 - NextAuth.js v5 JWT 会话认证
 - 亮色 / 暗色主题切换
 - 修改密码
+- **受保护域名**：`PROTECTED_ZONES` 环境变量指定的域名下所有 DNS 记录禁止增删改
+- **受保护超管**：`PROTECTED_ADMIN_EMAIL` 指定账号的密码、角色、删除操作均被禁止
+- **演示模式**：`DEMO_MODE=true` 时登录页自动填充账号密码
 
 ## 快速开始
 
@@ -44,7 +47,7 @@ pnpm install
 DATABASE_URL="postgresql://user:pass@host:5432/dns_admin"
 AUTH_SECRET="<openssl rand -base64 32>"
 SEED_ADMIN_EMAIL="admin@example.com"
-SEED_ADMIN_PASSWORD="changeme"
+SEED_ADMIN_PASSWORD="changeme123"
 ```
 
 ### 3. 初始化数据库
@@ -60,7 +63,7 @@ pnpm prisma db seed
 pnpm dev
 ```
 
-访问 `http://localhost:3000`，使用 seed 账号登录后，在 `/admin/cf-accounts` 添加 Cloudflare API Token。
+访问 `http://localhost:3000`，未登录时显示项目落地页，使用 seed 账号登录后，在 `/admin/cf-accounts` 添加 Cloudflare API Token。
 
 Token 需要至少 **区域 → DNS → 编辑** 和 **区域 → 区域 → 读取** 权限，可[在此创建](https://dash.cloudflare.com/profile/api-tokens)。
 
@@ -68,7 +71,7 @@ Token 需要至少 **区域 → DNS → 编辑** 和 **区域 → 区域 → 读
 
 | 类别 | 技术 |
 |------|------|
-| 框架 | Next.js 16 (App Router) |
+| 框架 | Next.js 15 (App Router) |
 | 认证 | NextAuth.js v5 (Credentials + JWT) |
 | 数据库 | PostgreSQL + Prisma 5 |
 | UI | shadcn/ui + Tailwind CSS v4 |

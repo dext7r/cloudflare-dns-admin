@@ -237,8 +237,8 @@ export function DnsTable({
                         <div>
                           <Switch
                             checked={record.proxied}
-                            onCheckedChange={() => !readonly && onToggleProxy(record)}
-                            disabled={readonly}
+                            onCheckedChange={() => !readonly && !protectedZone && onToggleProxy(record)}
+                            disabled={readonly || !!protectedZone}
                             className="data-[state=checked]:bg-primary"
                           />
                         </div>
@@ -278,7 +278,7 @@ export function DnsTable({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      {!readonly && (
+                      {!readonly && !protectedZone && (
                         <DropdownMenuItem onClick={() => onEdit(record)}>
                           <Pencil className="mr-2 h-4 w-4" />
                           编辑

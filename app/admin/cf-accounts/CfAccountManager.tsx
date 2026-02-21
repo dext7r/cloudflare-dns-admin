@@ -170,7 +170,7 @@ export function CfAccountManager() {
   }
 
   return (
-    <div className="px-6 py-5 space-y-5 max-w-4xl mx-auto">
+    <div className="px-6 py-5 space-y-5 max-w-7xl mx-auto">
       {/* Permission guide */}
       <div className="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm dark:border-blue-900 dark:bg-blue-950/30">
         <Info className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />

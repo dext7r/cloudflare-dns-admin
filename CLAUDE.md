@@ -19,7 +19,7 @@ pnpm prisma generate                  # 重新生成 Prisma Client
 DATABASE_URL="postgresql://..."
 AUTH_SECRET="<openssl rand -base64 32>"
 SEED_ADMIN_EMAIL="admin@example.com"
-SEED_ADMIN_PASSWORD="changeme"
+SEED_ADMIN_PASSWORD="changeme123"
 ```
 
 ## 架构概览
@@ -28,19 +28,20 @@ SEED_ADMIN_PASSWORD="changeme"
 
 ```
 app/page.tsx (服务端, auth() 鉴权)
-  └─ <AdminShell role user />         ← 侧边栏布局，含用户信息/主题/退出
-       └─ <DnsManager role />         ← 唯一客户端状态中心，SWR 管理数据
-            ├─ <AccountSelector />    ← CF 账号选择（VIEWER 只见绑定账号）
-            ├─ <ZoneSelector />       ← 可搜索 combobox 切换 Zone
-            ├─ <DnsFilters />         ← 搜索 + 类型筛选
-            ├─ <DnsTable />           ← 纯展示 + 服务端分页 + 每页条数
-            ├─ <DnsRecordForm />      ← 创建/编辑（react-hook-form + zod）
-            ├─ <DnsBatchActions />    ← 批量删除（ADMIN only）
-            └─ <DnsImportDialog />    ← BIND 格式导入（ADMIN only）
+  ├─ 未登录 → <LandingPage />             ← 公开落地页，展示功能与项目链接
+  └─ 已登录 → <AdminShell role user />    ← 侧边栏布局，含用户信息/主题/退出
+               └─ <DnsManager role />     ← 唯一客户端状态中心，SWR 管理数据
+                    ├─ <AccountSelector />  ← CF 账号选择（VIEWER 只见绑定账号）
+                    ├─ <ZoneSelector />     ← 可搜索 combobox 切换 Zone
+                    ├─ <DnsFilters />       ← 搜索 + 类型筛选
+                    ├─ <DnsTable />         ← 纯展示 + 服务端分页 + 每页条数
+                    ├─ <DnsRecordForm />    ← 创建/编辑（react-hook-form + zod）
+                    ├─ <DnsBatchActions />  ← 批量删除（ADMIN only）
+                    └─ <DnsImportDialog />  ← BIND 格式导入（ADMIN only）
 
 app/admin/cf-accounts/page.tsx        ← CF 账号管理（ADMIN only）
 app/admin/users/page.tsx              ← 用户管理（ADMIN only）
-app/login/page.tsx                    ← 登录页
+app/login/page.tsx                    ← 登录页（分栏布局，左侧品牌/右侧表单）
 ```
 
 ### API 路由
@@ -62,20 +63,21 @@ app/login/page.tsx                    ← 登录页
 | `/api/profile/password` | PATCH | 修改密码 | 已登录 |
 | `/api/auth/[...nextauth]` | * | NextAuth.js handlers | — |
 
-路由保护通过 `proxy.ts`（根目录 middleware）实现：未登录 → `/login`，VIEWER 访问 `/admin/*` → `/`。
+路由保护通过 `app/page.tsx` 服务端 `auth()` 检查实现：未登录显示落地页，VIEWER 访问 `/admin/*` → 服务端 redirect 到 `/`。
 
 ### 关键文件
 
 - **`lib/auth.ts`** — NextAuth.js 核心（handlers / auth / signIn / signOut）
 - **`lib/auth-guard.ts`** — API 路由鉴权：`requireAuth(role?)`，返回 `{ error, session }`
-- **`lib/cf-token.ts`** — AES-256-GCM 加密/解密 CF API Token（`encrypt` / `decrypt`）
+- **`lib/cf-token.ts`** — AES-256-GCM 加密/解密 CF API Token（`encrypt` / `decrypt`）；`resolveToken(accountId?, session?)` 含 VIEWER 账号绑定校验
 - **`lib/prisma.ts`** — PrismaClient 全局单例
-- **`lib/cloudflare.ts`** — 服务端 Cloudflare API v4 封装，唯一入口
+- **`lib/cloudflare.ts`** — 服务端 Cloudflare API v4 封装；`getZone()` 用于受保护域名检查
 - **`lib/dns-types.ts`** — 全部 TS 类型，14 种记录类型的 `data` 字段结构
-- **`components/DnsManager.tsx`** — 客户端状态编排中心
+- **`components/LandingPage.tsx`** — 公开落地页（无需登录），hero + 功能卡 + 技术栈 + CTA
+- **`components/DnsManager.tsx`** — 客户端状态编排中心；受保护区域隐藏增删改入口
+- **`components/DnsTable.tsx`** — `readonly` 控制 VIEWER 权限；`protectedZone` 控制受保护域名（隐藏 checkbox / 编辑 / 删除，禁用代理切换）
 - **`components/DnsRecordForm.tsx`** — 根据记录类型动态渲染字段
 - **`prisma/schema.prisma`** — User / CfAccount / UserCfAccount 模型
-- **`proxy.ts`** — Next.js middleware（路由保护）
 - **`types/next-auth.d.ts`** — 扩展 Session / JWT 类型加入 `role`
 
 ### 数据库模型

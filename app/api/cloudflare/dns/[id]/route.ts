@@ -20,6 +20,19 @@ export async function PUT(
     }
 
     const token = await resolveToken(accountId)
+
+    const protectedZones = (process.env.PROTECTED_ZONES ?? "")
+      .split(",").map(s => s.trim()).filter(Boolean)
+    if (protectedZones.length > 0) {
+      const zone = await getZone(zoneId, token)
+      if (zone && protectedZones.includes(zone.name)) {
+        return NextResponse.json(
+          { success: false, error: "该域名为受保护域名，禁止修改 DNS 记录" },
+          { status: 403 }
+        )
+      }
+    }
+
     const record = await updateDnsRecord(zoneId, id, token, recordData)
     return NextResponse.json({ success: true, result: record })
   } catch (error) {

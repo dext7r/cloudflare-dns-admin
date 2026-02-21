@@ -278,7 +278,7 @@ export function DnsManager({ role, protectedZones = [] }: DnsManagerProps) {
               <RefreshCw className="h-3.5 w-3.5" />
               <span className="hidden sm:inline ml-1.5">刷新</span>
             </Button>
-            {isAdmin && (
+            {isAdmin && !isProtectedZone && (
               <Button
                 variant="outline"
                 size="sm"
@@ -298,7 +298,7 @@ export function DnsManager({ role, protectedZones = [] }: DnsManagerProps) {
               <Download className="h-3.5 w-3.5" />
               <span className="ml-1.5">导出</span>
             </Button>
-            {isAdmin && (
+            {isAdmin && !isProtectedZone && (
               <Button
                 size="sm"
                 onClick={() => {
