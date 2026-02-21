@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import useSWR from "swr"
 import { Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -66,7 +66,7 @@ export function AnalyticsManager({ role: _role }: AnalyticsManagerProps) {
   const { accountId, zoneId, accounts, zones, zonesLoading, onAccountChange, onZoneChange } =
     useZoneContext()
   const [range, setRange] = useState<Range>("24h")
-  const { since, until } = getRangeParams(range)
+  const { since, until } = useMemo(() => getRangeParams(range), [range])
 
   const analyticsUrl =
     zoneId
@@ -152,7 +152,7 @@ export function AnalyticsManager({ role: _role }: AnalyticsManagerProps) {
             ))}
           </div>
 
-          {timeseries.length > 0 && (
+          {timeseries.length > 0 ? (
             <div className="rounded-lg border border-border/50 bg-card/50 overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
@@ -189,6 +189,10 @@ export function AnalyticsManager({ role: _role }: AnalyticsManagerProps) {
                   ))}
                 </tbody>
               </table>
+            </div>
+          ) : (
+            <div className="flex h-32 items-center justify-center rounded-lg border border-border/50 bg-card/50 text-sm text-muted-foreground">
+              该时间段内暂无流量数据
             </div>
           )}
         </>

@@ -36,9 +36,10 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import Image from "next/image"
 import {
   Plus, Trash2, Pencil, Loader2, Zap, Eye, EyeOff, Info, ExternalLink,
-  CheckCircle2, XCircle, HelpCircle, MinusCircle,
+  CheckCircle2, XCircle, HelpCircle, MinusCircle, ZoomIn,
 } from "lucide-react"
 import type { Permission, PermStatus } from "@/types/cf-token"
 
@@ -99,6 +100,7 @@ export function CfAccountManager() {
   const [testResults, setTestResults] = useState<Record<string, TestRecord>>({})
   const [showCreateToken, setShowCreateToken] = useState(false)
   const [showEditToken, setShowEditToken] = useState(false)
+  const [tokenGuideOpen, setTokenGuideOpen] = useState(false)
 
   const { data, isLoading, mutate } = useSWR<{ success: boolean; result: CfAccount[] }>(
     "/api/admin/cf-accounts",
@@ -210,24 +212,44 @@ export function CfAccountManager() {
       {/* Permission guide */}
       <div className="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm dark:border-blue-900 dark:bg-blue-950/30">
         <Info className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
-        <div className="space-y-2">
+        <div className="flex-1 space-y-2">
           <p className="font-medium text-blue-900 dark:text-blue-100">Token 权限说明</p>
-          <div className="text-blue-700 dark:text-blue-300 space-y-1">
-            <p className="font-medium text-blue-800 dark:text-blue-200 text-xs">必需权限：</p>
-            <p className="text-xs">
-              <code className="mx-1 rounded bg-blue-100 px-1 py-0.5 font-mono dark:bg-blue-900">区域 → 区域 → 读取</code>
-              <code className="mx-1 rounded bg-blue-100 px-1 py-0.5 font-mono dark:bg-blue-900">区域 → DNS → 编辑</code>
-            </p>
-            <p className="font-medium text-blue-800 dark:text-blue-200 text-xs mt-1">按功能按需添加：</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-0.5 text-xs">
-              <span><code className="rounded bg-blue-100 px-1 py-0.5 font-mono dark:bg-blue-900">区域 → 缓存规则 → 清除</code> 缓存清除</span>
-              <span><code className="rounded bg-blue-100 px-1 py-0.5 font-mono dark:bg-blue-900">区域 → 区域设置 → 编辑</code> Zone 设置</span>
-              <span><code className="rounded bg-blue-100 px-1 py-0.5 font-mono dark:bg-blue-900">区域 → 电子邮件路由 → 编辑</code> 邮件路由</span>
-              <span><code className="rounded bg-blue-100 px-1 py-0.5 font-mono dark:bg-blue-900">区域 → 防火墙服务 → 编辑</code> IP 防火墙</span>
-              <span><code className="rounded bg-blue-100 px-1 py-0.5 font-mono dark:bg-blue-900">区域 → Workers 路由 → 读取</code> Workers 路由</span>
-              <span><code className="rounded bg-blue-100 px-1 py-0.5 font-mono dark:bg-blue-900">区域 → 分析 → 读取</code> 流量分析</span>
-              <span><code className="rounded bg-blue-100 px-1 py-0.5 font-mono dark:bg-blue-900">账号 → Lists → 读取</code> 批量重定向</span>
+          <div className="flex gap-4 items-start">
+            <div className="text-blue-700 dark:text-blue-300 space-y-1 flex-1">
+              <p className="font-medium text-blue-800 dark:text-blue-200 text-xs">必需权限：</p>
+              <p className="text-xs">
+                <code className="mx-1 rounded bg-blue-100 px-1 py-0.5 font-mono dark:bg-blue-900">区域 → 区域 → 读取</code>
+                <code className="mx-1 rounded bg-blue-100 px-1 py-0.5 font-mono dark:bg-blue-900">区域 → DNS → 编辑</code>
+              </p>
+              <p className="font-medium text-blue-800 dark:text-blue-200 text-xs mt-1">按功能按需添加：</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-0.5 text-xs">
+                <span><code className="rounded bg-blue-100 px-1 py-0.5 font-mono dark:bg-blue-900">区域 → 缓存规则 → 清除</code> 缓存清除</span>
+                <span><code className="rounded bg-blue-100 px-1 py-0.5 font-mono dark:bg-blue-900">区域 → 区域设置 → 编辑</code> Zone 设置</span>
+                <span><code className="rounded bg-blue-100 px-1 py-0.5 font-mono dark:bg-blue-900">区域 → 电子邮件路由 → 编辑</code> 邮件路由</span>
+                <span><code className="rounded bg-blue-100 px-1 py-0.5 font-mono dark:bg-blue-900">区域 → 防火墙服务 → 编辑</code> IP 防火墙</span>
+                <span><code className="rounded bg-blue-100 px-1 py-0.5 font-mono dark:bg-blue-900">区域 → Workers 路由 → 读取</code> Workers 路由</span>
+                <span><code className="rounded bg-blue-100 px-1 py-0.5 font-mono dark:bg-blue-900">区域 → 分析 → 读取</code> 流量分析</span>
+                <span><code className="rounded bg-blue-100 px-1 py-0.5 font-mono dark:bg-blue-900">账号 → Lists → 读取</code> 批量重定向</span>
+              </div>
             </div>
+            {/* Token 权限配置截图缩略图 */}
+            <button
+              type="button"
+              onClick={() => setTokenGuideOpen(true)}
+              className="shrink-0 group relative rounded-md overflow-hidden border border-blue-200 dark:border-blue-800 hover:border-blue-400 transition-colors"
+              title="点击查看大图"
+            >
+              <Image
+                src="/api-token.png"
+                alt="Token 权限配置示例"
+                width={160}
+                height={110}
+                className="object-cover"
+              />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 flex items-center justify-center transition-all">
+                <ZoomIn className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow" />
+              </div>
+            </button>
           </div>
           <a
             href="https://dash.cloudflare.com/profile/api-tokens"
@@ -240,6 +262,24 @@ export function CfAccountManager() {
           </a>
         </div>
       </div>
+
+      {/* Token guide lightbox */}
+      <Dialog open={tokenGuideOpen} onOpenChange={setTokenGuideOpen}>
+        <DialogContent className="max-w-2xl p-0 overflow-hidden">
+          <DialogHeader className="px-4 py-3 border-b">
+            <DialogTitle className="text-sm">Token 权限配置示例</DialogTitle>
+          </DialogHeader>
+          <div className="p-2">
+            <Image
+              src="/api-token.png"
+              alt="Token 权限配置示例"
+              width={800}
+              height={560}
+              className="w-full h-auto rounded"
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Page toolbar */}
       <div className="flex items-center justify-end">
