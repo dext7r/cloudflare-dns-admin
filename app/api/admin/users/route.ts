@@ -29,7 +29,7 @@ export async function GET() {
 
   return NextResponse.json({
     success: true,
-    result: users.map(({ cfAccounts, ...u }) => ({
+    result: users.map(({ cfAccounts, ...u }: { cfAccounts: { cfAccountId: string }[]; id: string; email: string; name: string | null; role: string; createdAt: Date }) => ({
       ...u,
       cfAccountIds: cfAccounts.map((c) => c.cfAccountId),
     })),

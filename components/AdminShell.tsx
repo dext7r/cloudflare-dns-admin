@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { signOut } from "next-auth/react"
 import { ThemeToggle } from "@/components/ThemeToggle"
+import { CommandMenu } from "@/components/CommandMenu"
 import { ChangePasswordDialog } from "@/components/ChangePasswordDialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -19,6 +20,16 @@ import {
   Menu,
   X,
   ChevronRight,
+  LayoutDashboard,
+  BarChart3,
+  Settings2,
+  Zap,
+  Mail,
+  ShieldAlert,
+  Code2,
+  ArrowRightLeft,
+  ClipboardList,
+  Webhook,
 } from "lucide-react"
 
 interface AdminShellProps {
@@ -32,17 +43,43 @@ export function AdminShell({ children, role, user }: AdminShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const isAdmin = role === "ADMIN"
 
-  const navItems = [
-    { href: "/", label: "DNS 管理", icon: Globe },
+  const navSections = [
+    {
+      label: "DNS 管理",
+      items: [
+        { href: "/", label: "DNS 记录", icon: Globe },
+        { href: "/zone-overview", label: "Zone 概览", icon: LayoutDashboard },
+        { href: "/analytics", label: "流量分析", icon: BarChart3 },
+      ],
+    },
+    {
+      label: "Zone 管理",
+      items: [
+        { href: "/zone-settings", label: "Zone 设置", icon: Settings2 },
+        { href: "/cache", label: "缓存管理", icon: Zap },
+        { href: "/email-routing", label: "邮件路由", icon: Mail },
+        { href: "/firewall", label: "IP 防火墙", icon: ShieldAlert },
+        { href: "/workers-routes", label: "Workers 路由", icon: Code2 },
+        { href: "/redirects", label: "批量重定向", icon: ArrowRightLeft },
+      ],
+    },
     ...(isAdmin
       ? [
-          { href: "/admin/users", label: "用户管理", icon: Users },
-          { href: "/admin/cf-accounts", label: "账号管理", icon: KeyRound },
+          {
+            label: "系统管理",
+            items: [
+              { href: "/admin/users", label: "用户管理", icon: Users },
+              { href: "/admin/cf-accounts", label: "账号管理", icon: KeyRound },
+              { href: "/admin/audit-log", label: "审计日志", icon: ClipboardList },
+              { href: "/admin/webhooks", label: "Webhook", icon: Webhook },
+            ],
+          },
         ]
       : []),
   ]
 
-  const activeLabel = navItems.find((i) => i.href === pathname)?.label ?? "管理系统"
+  const activeLabel =
+    navSections.flatMap((s) => s.items).find((i) => i.href === pathname)?.label ?? "管理系统"
 
   function SidebarNav() {
     return (
@@ -61,26 +98,35 @@ export function AdminShell({ children, role, user }: AdminShellProps) {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-          {navItems.map(({ href, label, icon: Icon }) => {
-            const isActive = pathname === href
-            return (
-              <Link
-                key={href}
-                href={href}
-                onClick={() => setMobileOpen(false)}
-                className={cn(
-                  "flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors",
-                  isActive
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
-                    : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                )}
-              >
-                <Icon className="h-4 w-4 shrink-0" />
-                {label}
-              </Link>
-            )
-          })}
+        <nav className="flex-1 px-3 py-4 overflow-y-auto">
+          {navSections.map((section) => (
+            <div key={section.label} className="mt-4 first:mt-0">
+              <h3 className="text-[10px] text-sidebar-foreground/30 uppercase tracking-wider px-3 mb-1">
+                {section.label}
+              </h3>
+              <div className="space-y-0.5">
+                {section.items.map(({ href, label, icon: Icon }) => {
+                  const isActive = pathname === href
+                  return (
+                    <Link
+                      key={href}
+                      href={href}
+                      onClick={() => setMobileOpen(false)}
+                      className={cn(
+                        "flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors",
+                        isActive
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
+                          : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                      )}
+                    >
+                      <Icon className="h-4 w-4 shrink-0" />
+                      {label}
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
         {/* Footer */}
@@ -168,7 +214,8 @@ export function AdminShell({ children, role, user }: AdminShellProps) {
             <ChevronRight className="h-3 w-3 hidden sm:block shrink-0 opacity-40" />
             <span className="font-medium text-foreground truncate">{activeLabel}</span>
           </nav>
-          <div className="ml-auto shrink-0">
+          <div className="ml-auto flex items-center gap-2 shrink-0">
+            <CommandMenu />
             <ThemeToggle />
           </div>
         </header>

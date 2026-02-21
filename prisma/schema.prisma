@@ -48,3 +48,31 @@ model UserCfAccount {
   @@id([userId, cfAccountId])
   @@map("dns_user_cf_accounts")
 }
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String
+  userEmail String
+  action    String
+  zoneId    String?
+  zoneName  String?
+  target    String?
+  before    Json?
+  after     Json?
+  createdAt DateTime @default(now())
+
+  @@map("dns_audit_logs")
+}
+
+model Webhook {
+  id        String   @id @default(cuid())
+  name      String
+  url       String
+  events    String[]
+  secret    String?
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("dns_webhooks")
+}

@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from "next/server"
 import { deleteDnsRecord, getZone } from "@/lib/cloudflare"
 import { resolveToken } from "@/lib/cf-token"
 import { requireAuth } from "@/lib/auth-guard"
+import { writeAuditLog } from "@/lib/audit"
 
 export async function POST(request: NextRequest) {
-  const { error } = await requireAuth("ADMIN")
+  const { error, session } = await requireAuth("ADMIN")
   if (error) return error
 
   try {
@@ -41,6 +42,15 @@ export async function POST(request: NextRequest) {
     )
 
     const failed = results.filter((r) => r.status === "rejected")
+    const zone = await getZone(zoneId, token).catch(() => null)
+    writeAuditLog({
+      userId: session!.user.id as string,
+      userEmail: session!.user.email!,
+      action: "dns.batch_delete",
+      zoneId,
+      zoneName: zone?.name,
+      target: `${recordIds.length} 条记录`,
+    })
     return NextResponse.json({
       success: true,
       deleted: recordIds.length - failed.length,

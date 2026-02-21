@@ -3,6 +3,7 @@ import { listDnsRecords, createDnsRecord, getZone } from "@/lib/cloudflare"
 import { resolveToken } from "@/lib/cf-token"
 import type { DnsRecordFilters } from "@/lib/dns-types"
 import { requireAuth } from "@/lib/auth-guard"
+import { writeAuditLog } from "@/lib/audit"
 
 export async function GET(request: NextRequest) {
   const { error, session } = await requireAuth()
@@ -43,7 +44,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const { error } = await requireAuth("ADMIN")
+  const { error, session } = await requireAuth("ADMIN")
   if (error) return error
 
   try {
@@ -69,6 +70,16 @@ export async function POST(request: NextRequest) {
     }
 
     const record = await createDnsRecord(zoneId, token, recordData)
+    const zone = await getZone(zoneId, token).catch(() => null)
+    writeAuditLog({
+      userId: session!.user.id as string,
+      userEmail: session!.user.email!,
+      action: "dns.create",
+      zoneId,
+      zoneName: zone?.name,
+      target: `${recordData.type} ${recordData.name}`,
+      after: record,
+    })
     return NextResponse.json({ success: true, result: record })
   } catch (error) {
     const message = error instanceof Error ? error.message : "创建 DNS 记录失败"

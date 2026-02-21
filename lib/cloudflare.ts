@@ -143,3 +143,204 @@ export async function importDnsRecords(
   const json = await res.json()
   return json.result
 }
+
+// ── Zone Settings ─────────────────────────────────────────────────────────────
+
+export interface ZoneSetting {
+  id: string
+  editable?: boolean
+  modified_on?: string
+  value: unknown
+  [key: string]: unknown
+}
+
+export async function listZoneSettings(zoneId: string, token: string): Promise<ZoneSetting[]> {
+  const response = await cfFetch<ZoneSetting[]>(`/zones/${zoneId}/settings`, token)
+  return response.result
+}
+
+export async function updateZoneSetting(
+  zoneId: string,
+  settingId: string,
+  value: unknown,
+  token: string
+): Promise<ZoneSetting> {
+  const response = await cfFetch<ZoneSetting>(`/zones/${zoneId}/settings/${settingId}`, token, {
+    method: "PATCH",
+    body: JSON.stringify({ value }),
+  })
+  return response.result
+}
+
+// ── Cache ─────────────────────────────────────────────────────────────────────
+
+export async function purgeCacheAll(zoneId: string, token: string): Promise<{ id: string }> {
+  const response = await cfFetch<{ id: string }>(`/zones/${zoneId}/purge_cache`, token, {
+    method: "POST",
+    body: JSON.stringify({ purge_everything: true }),
+  })
+  return response.result
+}
+
+export async function purgeCacheByUrls(
+  zoneId: string,
+  urls: string[],
+  token: string
+): Promise<{ id: string }> {
+  const response = await cfFetch<{ id: string }>(`/zones/${zoneId}/purge_cache`, token, {
+    method: "POST",
+    body: JSON.stringify({ files: urls }),
+  })
+  return response.result
+}
+
+// ── Email Routing ─────────────────────────────────────────────────────────────
+
+export interface EmailRoutingRule {
+  id: string
+  name?: string
+  enabled?: boolean
+  priority?: number
+  actions?: unknown[]
+  matchers?: unknown[]
+  [key: string]: unknown
+}
+
+export async function listEmailRoutingRules(
+  zoneId: string,
+  token: string
+): Promise<EmailRoutingRule[]> {
+  const response = await cfFetch<EmailRoutingRule[]>(`/zones/${zoneId}/email/routing/rules`, token)
+  return response.result
+}
+
+export async function createEmailRoutingRule(
+  zoneId: string,
+  data: Omit<EmailRoutingRule, "id">,
+  token: string
+): Promise<EmailRoutingRule> {
+  const response = await cfFetch<EmailRoutingRule>(`/zones/${zoneId}/email/routing/rules`, token, {
+    method: "POST",
+    body: JSON.stringify(data),
+  })
+  return response.result
+}
+
+export async function updateEmailRoutingRule(
+  zoneId: string,
+  ruleId: string,
+  data: Partial<Omit<EmailRoutingRule, "id">>,
+  token: string
+): Promise<EmailRoutingRule> {
+  const response = await cfFetch<EmailRoutingRule>(
+    `/zones/${zoneId}/email/routing/rules/${ruleId}`,
+    token,
+    { method: "PUT", body: JSON.stringify(data) }
+  )
+  return response.result
+}
+
+export async function deleteEmailRoutingRule(
+  zoneId: string,
+  ruleId: string,
+  token: string
+): Promise<void> {
+  await cfFetch<{ id: string }>(`/zones/${zoneId}/email/routing/rules/${ruleId}`, token, {
+    method: "DELETE",
+  })
+}
+
+// ── Firewall ──────────────────────────────────────────────────────────────────
+
+export interface FirewallRule {
+  id: string
+  mode: string
+  configuration: { target: string; value: string }
+  notes?: string
+  [key: string]: unknown
+}
+
+export async function listFirewallRules(zoneId: string, token: string): Promise<FirewallRule[]> {
+  const response = await cfFetch<FirewallRule[]>(
+    `/zones/${zoneId}/firewall/access_rules/rules`,
+    token
+  )
+  return response.result
+}
+
+export async function createFirewallRule(
+  zoneId: string,
+  data: { mode: string; configuration: { target: string; value: string }; notes?: string },
+  token: string
+): Promise<FirewallRule> {
+  const response = await cfFetch<FirewallRule>(
+    `/zones/${zoneId}/firewall/access_rules/rules`,
+    token,
+    { method: "POST", body: JSON.stringify(data) }
+  )
+  return response.result
+}
+
+export async function deleteFirewallRule(
+  zoneId: string,
+  ruleId: string,
+  token: string
+): Promise<void> {
+  await cfFetch<{ id: string }>(
+    `/zones/${zoneId}/firewall/access_rules/rules/${ruleId}`,
+    token,
+    { method: "DELETE" }
+  )
+}
+
+// ── Workers Routes ────────────────────────────────────────────────────────────
+
+export interface WorkerRoute {
+  id: string
+  pattern: string
+  script?: string
+  [key: string]: unknown
+}
+
+export async function listWorkersRoutes(zoneId: string, token: string): Promise<WorkerRoute[]> {
+  const response = await cfFetch<WorkerRoute[]>(`/zones/${zoneId}/workers/routes`, token)
+  return response.result
+}
+
+// ── Analytics ─────────────────────────────────────────────────────────────────
+
+export interface ZoneAnalytics {
+  totals?: Record<string, unknown>
+  timeseries?: Array<Record<string, unknown>>
+  [key: string]: unknown
+}
+
+export async function getZoneAnalytics(
+  zoneId: string,
+  token: string,
+  since?: string,
+  until?: string
+): Promise<ZoneAnalytics> {
+  const params = new URLSearchParams()
+  if (since) params.set("since", since)
+  if (until) params.set("until", until)
+  const qs = params.toString()
+  const response = await cfFetch<ZoneAnalytics>(
+    `/zones/${zoneId}/analytics/dashboard${qs ? `?${qs}` : ""}`,
+    token
+  )
+  return response.result
+}
+
+// ── Bulk Redirects ────────────────────────────────────────────────────────────
+
+export async function listBulkRedirectLists(
+  accountId: string,
+  token: string
+): Promise<Array<Record<string, unknown>>> {
+  const response = await cfFetch<Array<Record<string, unknown>>>(
+    `/accounts/${accountId}/rules/lists?kind=redirect`,
+    token
+  )
+  return response.result
+}

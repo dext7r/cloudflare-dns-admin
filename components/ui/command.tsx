@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { Command as CommandPrimitive } from 'cmdk'
-import { SearchIcon } from 'lucide-react'
+import { SearchIcon, SearchX } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import {
@@ -99,14 +99,23 @@ function CommandList({
 }
 
 function CommandEmpty({
+  className,
   ...props
 }: React.ComponentProps<typeof CommandPrimitive.Empty>) {
   return (
     <CommandPrimitive.Empty
       data-slot="command-empty"
-      className="py-6 text-center text-sm"
+      className={cn('py-12 flex flex-col items-center justify-center text-center text-sm gap-3', className)}
       {...props}
-    />
+    >
+      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted/50">
+        <SearchX className="h-5 w-5 text-muted-foreground/50" />
+      </div>
+      <div className="space-y-1">
+        <p className="font-medium text-foreground">没有找到匹配结果</p>
+        <p className="text-xs text-muted-foreground">请尝试调整搜索关键词或换个词搜索。</p>
+      </div>
+    </CommandPrimitive.Empty>
   )
 }
 

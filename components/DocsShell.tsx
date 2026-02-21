@@ -21,25 +21,56 @@ import {
   X,
   ChevronRight,
   ArrowLeft,
+  LayoutDashboard,
+  BarChart3,
+  Zap,
+  Mail,
+  ShieldAlert,
+  Code2,
+  ArrowRightLeft,
+  ClipboardList,
+  Webhook,
 } from "lucide-react"
 
-const navItems = [
-  { href: "/docs", label: "介绍", icon: BookOpen, exact: true },
-  { href: "/docs/getting-started", label: "快速开始", icon: Rocket },
-  { href: "/docs/configuration", label: "环境配置", icon: Settings2 },
-  { href: "/docs/deployment", label: "部署指南", icon: Server },
-  { href: "/docs/users", label: "用户与权限", icon: Users },
-  { href: "/docs/cf-accounts", label: "CF 账号管理", icon: KeyRound },
-  { href: "/docs/dns", label: "DNS 管理", icon: Globe },
-  { href: "/docs/protected-zones", label: "受保护域名", icon: ShieldCheck },
+const navSections = [
+  {
+    label: "入门",
+    items: [
+      { href: "/docs", label: "介绍", icon: BookOpen, exact: true },
+      { href: "/docs/getting-started", label: "快速开始", icon: Rocket },
+      { href: "/docs/configuration", label: "环境配置", icon: Settings2 },
+      { href: "/docs/deployment", label: "部署指南", icon: Server },
+    ],
+  },
+  {
+    label: "功能",
+    items: [
+      { href: "/docs/users", label: "用户与权限", icon: Users },
+      { href: "/docs/cf-accounts", label: "CF 账号管理", icon: KeyRound },
+      { href: "/docs/dns", label: "DNS 管理", icon: Globe },
+      { href: "/docs/protected-zones", label: "受保护域名", icon: ShieldCheck },
+      { href: "/docs/zone-overview", label: "Zone 概览", icon: LayoutDashboard },
+      { href: "/docs/analytics", label: "流量分析", icon: BarChart3 },
+      { href: "/docs/zone-settings", label: "Zone 设置", icon: Settings2 },
+      { href: "/docs/cache", label: "缓存管理", icon: Zap },
+      { href: "/docs/email-routing", label: "邮件路由", icon: Mail },
+      { href: "/docs/firewall", label: "IP 防火墙", icon: ShieldAlert },
+      { href: "/docs/workers-routes", label: "Workers 路由", icon: Code2 },
+      { href: "/docs/redirects", label: "批量重定向", icon: ArrowRightLeft },
+      { href: "/docs/audit-log", label: "审计日志", icon: ClipboardList },
+      { href: "/docs/webhooks", label: "Webhook", icon: Webhook },
+    ],
+  },
 ]
+
+const allNavItems = navSections.flatMap((s) => s.items)
 
 export function DocsShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const activeLabel =
-    navItems.find((i) =>
+    allNavItems.find((i) =>
       i.exact ? pathname === i.href : pathname === i.href || pathname.startsWith(i.href + "/")
     )?.label ?? "文档"
 
@@ -58,28 +89,37 @@ export function DocsShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-          {navItems.map(({ href, label, icon: Icon, exact }) => {
-            const isActive = exact
-              ? pathname === href
-              : pathname === href || pathname.startsWith(href + "/")
-            return (
-              <Link
-                key={href}
-                href={href}
-                onClick={() => setMobileOpen(false)}
-                className={cn(
-                  "flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors",
-                  isActive
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
-                    : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                )}
-              >
-                <Icon className="h-4 w-4 shrink-0" />
-                {label}
-              </Link>
-            )
-          })}
+        <nav className="flex-1 px-3 py-3 overflow-y-auto space-y-4">
+          {navSections.map((section) => (
+            <div key={section.label}>
+              <h3 className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/30">
+                {section.label}
+              </h3>
+              <div className="space-y-0.5">
+                {section.items.map(({ href, label, icon: Icon, exact }) => {
+                  const isActive = exact
+                    ? pathname === href
+                    : pathname === href || pathname.startsWith(href + "/")
+                  return (
+                    <Link
+                      key={href}
+                      href={href}
+                      onClick={() => setMobileOpen(false)}
+                      className={cn(
+                        "flex items-center gap-2.5 px-3 py-1.5 rounded-md text-sm transition-colors",
+                        isActive
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
+                          : "text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                      )}
+                    >
+                      <Icon className="h-3.5 w-3.5 shrink-0" />
+                      {label}
+                    </Link>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
         <div className="px-3 pb-4 space-y-1">

@@ -17,7 +17,8 @@ export async function GET() {
   if (error) return error
 
   const role = (session!.user as any).role as string
-  let accounts
+  type AccountRow = { id: string; name: string; createdAt: Date; lastTestAt: Date | null; lastTestStatus: string | null }
+  let accounts: AccountRow[]
 
   if (role === "ADMIN") {
     accounts = await prisma.cfAccount.findMany({
@@ -30,7 +31,7 @@ export async function GET() {
       select: { cfAccount: { select: accountSelect } },
       orderBy: { cfAccount: { createdAt: "asc" } },
     })
-    accounts = bindings.map((b) => b.cfAccount)
+    accounts = bindings.map((b: { cfAccount: AccountRow }) => b.cfAccount)
   }
 
   return NextResponse.json({ success: true, result: accounts })

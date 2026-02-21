@@ -9,20 +9,23 @@ import {
   ChevronDown,
   ExternalLink,
   Code2,
+  BarChart3,
+  Webhook,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { ThemeToggle } from "@/components/ThemeToggle"
 
 const features = [
   {
     icon: Globe,
     title: "多账号多域名",
-    desc: "同时管理多个 Cloudflare 账号下的所有域名，一键切换无缝衔接",
+    desc: "同时管理多个 Cloudflare 账号下的所有域名，账号与域名一键切换",
   },
   {
     icon: Shield,
     title: "角色权限控制",
-    desc: "ADMIN 全权管理，VIEWER 只读访问，精细化用户与账号授权",
+    desc: "ADMIN 全权管理，VIEWER 只读访问，精细化用户与 CF 账号绑定授权",
   },
   {
     icon: Zap,
@@ -32,7 +35,7 @@ const features = [
   {
     icon: Lock,
     title: "安全 Token 管理",
-    desc: "API Token 加密存储，支持受保护域名配置，防止误删误改",
+    desc: "API Token AES-256-GCM 加密存储，受保护域名防止误删误改",
   },
   {
     icon: Server,
@@ -41,8 +44,18 @@ const features = [
   },
   {
     icon: RefreshCw,
-    title: "实时分页同步",
-    desc: "SWR 缓存 + 服务端分页，千条记录毫秒级加载响应",
+    title: "Zone 全功能管理",
+    desc: "Zone 概览、缓存清除、邮件路由、IP 防火墙、Workers 路由、批量重定向一站到位",
+  },
+  {
+    icon: Webhook,
+    title: "审计日志与 Webhook",
+    desc: "全量 DNS 操作审计记录，Webhook 实时推送变更通知至第三方系统",
+  },
+  {
+    icon: BarChart3,
+    title: "流量分析",
+    desc: "基于 Cloudflare Analytics API 的域名请求量、带宽、缓存命中率可视化看板",
   },
 ]
 
@@ -53,11 +66,17 @@ const techStack = [
   "PostgreSQL",
   "Cloudflare API v4",
   "Tailwind CSS v4",
+  "shadcn/ui",
 ]
 
 export function LandingPage() {
   return (
     <div className="min-h-screen bg-background">
+      {/* Navbar */}
+      <div className="fixed top-0 right-0 z-50 p-3">
+        <ThemeToggle />
+      </div>
+
       {/* Hero */}
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent pointer-events-none" />
@@ -74,7 +93,7 @@ export function LandingPage() {
             <span className="text-primary">管理系统</span>
           </h1>
           <p className="text-lg text-muted-foreground mb-8 max-w-xl mx-auto">
-            多账号、多域名 DNS 一站式管理 · 开源免费
+            多账号、多域名 DNS 与 Zone 全功能一站式管理 · 开源免费
           </p>
           <div className="flex items-center justify-center gap-3 flex-wrap">
             <Button size="lg" asChild>

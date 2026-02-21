@@ -42,6 +42,7 @@ export async function resolveToken(accountId?: string | null, session?: Session 
     if (!account) throw new Error("账号不存在")
     return decrypt(account.encryptedToken)
   }
+  if (session?.user?.role === "VIEWER") throw new Error("无权访问：VIEWER 必须指定账号")
   const token = process.env.CLOUDFLARE_API_TOKEN
   if (!token) throw new Error("CLOUDFLARE_API_TOKEN 未设置")
   return token

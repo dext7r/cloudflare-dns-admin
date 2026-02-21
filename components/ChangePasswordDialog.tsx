@@ -67,12 +67,17 @@ export function ChangePasswordDialog() {
 
   return (
     <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset() }}>
-      <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" className="w-full justify-start h-8 px-3 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent">
-          <KeyRound className="mr-2 h-4 w-4" />
-          修改密码
-        </Button>
-      </DialogTrigger>
+            <DialogTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                data-password-dialog-trigger
+                className="w-full justify-start h-8 px-3 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+              >
+                <KeyRound className="mr-2 h-4 w-4" />
+                修改密码
+              </Button>
+            </DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>修改密码</DialogTitle>
