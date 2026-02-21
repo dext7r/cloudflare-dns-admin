@@ -48,5 +48,5 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=registry,ref=ghcr.io/dext7r/cloudflare-dns-admin:buildcache
+          cache-to: type=registry,ref=ghcr.io/dext7r/cloudflare-dns-admin:buildcache,mode=max,image-manifest=true,oci-mediatypes=true

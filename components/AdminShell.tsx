@@ -106,7 +106,7 @@ export function AdminShell({ children, role, user }: AdminShellProps) {
               variant="ghost"
               size="sm"
               className="w-full justify-start h-8 px-3 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
-              onClick={() => signOut({ callbackUrl: "/login" })}
+              onClick={() => signOut({ callbackUrl: window.location.origin + "/login" })}
             >
               <LogOut className="mr-2 h-4 w-4" />
               退出登录
