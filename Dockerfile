@@ -4,10 +4,11 @@ RUN apk add --no-cache openssl
 RUN corepack enable pnpm
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY prisma ./prisma/
 RUN pnpm install --frozen-lockfile
-# Run explicitly from project root so output lands at /app/node_modules/.prisma
+# postinstall (prisma generate) is skipped for prisma pkgs via ignoredBuiltDependencies;
+# run explicitly from project root so /app/node_modules/.prisma is a real directory
 RUN pnpm exec prisma generate
 
 # ---- builder: compile Next.js ----
@@ -40,7 +41,7 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy .prisma from deps stage where it was generated at project root
+# prisma generate (explicit, from project root) creates /app/node_modules/.prisma as real dir
 COPY --from=deps --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
 
 USER nextjs
