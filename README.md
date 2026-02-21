@@ -46,9 +46,12 @@ pnpm install
 ```env
 DATABASE_URL="postgresql://user:pass@host:5432/dns_admin"
 AUTH_SECRET="<openssl rand -base64 32>"
+AUTH_URL="https://cloudflare-dns.us.ci"
 SEED_ADMIN_EMAIL="admin@example.com"
 SEED_ADMIN_PASSWORD="changeme123"
 ```
+
+> **`AUTH_URL`**：反向代理或 Docker 部署时必填。NextAuth.js 用它构建重定向 URL，缺失时会使用容器内部地址（如 `http://0.0.0.0:3000`）导致跳转异常。本地开发可省略。
 
 ### 3. 初始化数据库
 

@@ -13,6 +13,7 @@ pnpm install`,
     desc: "在项目根目录创建 .env.local，填入数据库连接和认证密钥。",
     code: `DATABASE_URL="postgresql://user:pass@localhost:5432/dns_admin"
 AUTH_SECRET="<openssl rand -base64 32>"
+# AUTH_URL="https://cloudflare-dns.us.ci"  # 反向代理/Docker 部署时必填
 SEED_ADMIN_EMAIL="admin@example.com"
 SEED_ADMIN_PASSWORD="changeme123"`,
   },

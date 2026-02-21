@@ -12,6 +12,11 @@ const vars = [
     example: `AUTH_SECRET="<openssl rand -base64 32>"`,
   },
   {
+    name: "AUTH_URL",
+    desc: "应用的公网访问地址。反向代理或 Docker 部署时必填，NextAuth.js 使用该值构建重定向 URL；缺失时会使用容器内部地址（如 http://0.0.0.0:3000）导致退出登录等跳转异常。本地开发可省略。",
+    example: `AUTH_URL="https://cloudflare-dns.us.ci"`,
+  },
+  {
     name: "SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD",
     desc: "仅用于 prisma db seed，创建首个管理员账号。生产环境首次登录后请立即修改密码。",
     example: `SEED_ADMIN_EMAIL="admin@example.com"\nSEED_ADMIN_PASSWORD="changeme123"`,

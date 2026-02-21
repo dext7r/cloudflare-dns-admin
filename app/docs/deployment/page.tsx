@@ -37,6 +37,7 @@ export default function DeploymentPage() {
     environment:
       DATABASE_URL: "postgresql://postgres:postgres@db:5432/dns_admin"
       AUTH_SECRET: "replace-with-openssl-rand-base64-32"
+      AUTH_URL: "https://cloudflare-dns.us.ci"
       SEED_ADMIN_EMAIL: "admin@example.com"
       SEED_ADMIN_PASSWORD: "changeme123"
     depends_on:

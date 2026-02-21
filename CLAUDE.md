@@ -18,6 +18,7 @@ pnpm prisma generate                  # 重新生成 Prisma Client
 ```env
 DATABASE_URL="postgresql://..."
 AUTH_SECRET="<openssl rand -base64 32>"
+AUTH_URL="https://cloudflare-dns.us.ci"   # 反向代理/Docker 部署时必填，本地开发可省略
 SEED_ADMIN_EMAIL="admin@example.com"
 SEED_ADMIN_PASSWORD="changeme123"
 ```
